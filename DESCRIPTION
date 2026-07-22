@@ -1,0 +1,65 @@
+Package: sammyR
+Title: Analysis of Sequential Analysis of MacroMolecules accessibilitY
+    sequencing (SAMMY-seq) Data
+Version: 0.0.0.9000
+Authors@R: 
+    person("Margherita", "Mutarelli", , "margherita.mutarelli@cnr.it", role = c("aut", "cre"))
+Description: Provides functions to analyse Sequential Analysis of
+    MacroMolecules accessibilitY sequencing (SAMMY-seq) data, including
+    (a) chromatin compartmentalization analysis to identify A/B
+    compartments across chromosomes via CALDER2 and (b) identification of
+    differentially enriched solubility regions as described in Wang et
+    al. (2025).
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    BiocGenerics,
+    CALDER,
+    data.table,
+    dendextend,
+    effsize,
+    GenomeInfoDb,
+    GenomicFeatures,
+    GenomicRanges,
+    Gviz,
+    methods,
+    parallel,
+    rtracklayer,
+    S4Vectors,
+    stats,
+    utils
+Suggests:
+    AnnotationDbi,
+    biomaRt,
+    BSDA,
+    DT,
+    easyalluvial,
+    eulerr,
+    factoextra,
+    GGally,
+    ggalluvial,
+    ggbreak,
+    ggExtra,
+    ggplot2,
+    ggpubr,
+    ggrepel,
+    ggridges,
+    gprofiler2,
+    knitr,
+    openxlsx,
+    org.Mm.eg.db,
+    patchwork,
+    pheatmap,
+    RColorBrewer,
+    rmarkdown,
+    scales,
+    stringr,
+    testthat (>= 3.0.0),
+    UpSetR,
+    viridis,
+    txdbmaker,
+    limma
+Remotes:
+    github::CSOgroup/CALDER2
+Config/roxygen2/version: 8.0.0
