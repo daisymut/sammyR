@@ -18,6 +18,22 @@
 #' @importFrom parallel mclapply
 #' @export
 import_and_rebin__bw <- function(files, bin_list, names, genome = NULL, cores = 1) {
+    bin_names <- GenomeInfoDb::seqlevels(bin_list)
+    bws <- parallel::mclapply(files, mc.cores = cores, function(file) {
+        bwR <- rtracklayer::import(file, format = "BigWig", as = "RleList")
+        missing <- setdiff(bin_names, names(bwR))
+        if (length(missing))
+            stop("seqlevels di bin_list assenti dal BigWig: ", paste(missing, collapse = ", "))
+        bwR <- bwR[bin_names]                                   # riordina, order-safe
+        bw  <- GenomicRanges::binnedAverage(bins = bin_list, numvar = bwR, varname = "score")
+        if (!is.null(genome)) GenomeInfoDb::genome(bw) <- genome
+        bw
+  })
+  names(bws) <- names
+  bws
+}
+
+import_and_rebin__bw <- function(files, bin_list, names, genome = NULL, cores = 1) {
   bws <- parallel::mclapply(files, mc.cores = cores, function(file) {
     bwR <- rtracklayer::import(file, format = "BigWig", as = "RleList")
 
@@ -88,39 +104,45 @@ make_txdb_from_gff <- function(gtf_file) {
 #'
 #' @param gtf_file Path to a GTF/GFF annotation file.
 #' @return A GRanges of protein-coding genes with cleaned `gene_id` mcols.
-#' @importFrom GenomicFeatures genes cdsBy transcripts
+#' @importFrom GenomicFeatures genes
 #' @importFrom S4Vectors mcols mcols<-
-#' @importFrom S4Vectors splitAsList
-#' @importFrom methods is
 #' @export
 setup_gene_annotation <- function(gtf_file) {
   # Create TxDb from GTF
   txdb <- make_txdb_from_gff(gtf_file)
   genes <- genes(txdb)
-
-  # Function to summarize protein coding genes
-  summarizeProteinCodingGenes <- function(txdb) {
-    stopifnot(is(txdb, "TxDb"))
-    protein_coding_tx <- names(cdsBy(txdb, use.names = TRUE))
-    all_tx <- mcols(transcripts(txdb, columns = c("gene_id", "tx_name")))
-    all_tx$gene_id <- as.character(all_tx$gene_id)
-    all_tx$is_coding <- all_tx$tx_name %in% protein_coding_tx
-    tmp <- splitAsList(all_tx$is_coding, all_tx$gene_id)
-    gene <- names(tmp)
-    n_tx <- lengths(tmp)
-    n_coding <- sum(tmp)
-    n_non_coding <- n_tx - n_coding
-    data.frame(gene, n_tx, n_coding, n_non_coding, stringsAsFactors = FALSE)
-  }
-
   # Get protein coding genes
   geneid_codingdf <- summarizeProteinCodingGenes(txdb)
   final_genes <- genes[genes$gene_id %in% geneid_codingdf[geneid_codingdf$n_coding > 0,]$gene]
-
   # Clean gene IDs
   mcols(final_genes)$gene_id <- gsub("\\..*", "", mcols(final_genes)$gene_id)
-
   return(final_genes)
+}
+
+#' Riassume il contenuto protein-coding per gene
+#'
+#' Per ogni gene di un TxDb conta i trascritti totali e quanti sono
+#' protein-coding (cioè hanno almeno un CDS), restituendo un sommario per gene.
+#'
+#' @param txdb Un oggetto \code{TxDb}.
+#' @return Un data.frame con una riga per gene e colonne \code{gene},
+#'   \code{n_tx}, \code{n_coding}, \code{n_non_coding}.
+#' @importFrom GenomicFeatures cdsBy transcripts
+#' @importFrom S4Vectors mcols splitAsList
+#' @importFrom methods is
+#' @keywords internal
+summarizeProteinCodingGenes <- function(txdb) {
+  stopifnot(is(txdb, "TxDb"))
+  protein_coding_tx <- names(cdsBy(txdb, use.names = TRUE))
+  all_tx <- mcols(transcripts(txdb, columns = c("gene_id", "tx_name")))
+  all_tx$gene_id <- as.character(all_tx$gene_id)
+  all_tx$is_coding <- all_tx$tx_name %in% protein_coding_tx
+  tmp <- splitAsList(all_tx$is_coding, all_tx$gene_id)
+  gene <- names(tmp)
+  n_tx <- lengths(tmp)
+  n_coding <- sum(tmp)
+  n_non_coding <- n_tx - n_coding
+  data.frame(gene, n_tx, n_coding, n_non_coding, stringsAsFactors = FALSE)
 }
 
 #' Add comparison metadata columns to a data frame
