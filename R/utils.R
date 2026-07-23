@@ -33,34 +33,6 @@ import_and_rebin__bw <- function(files, bin_list, names, genome = NULL, cores = 
   bws
 }
 
-import_and_rebin__bw <- function(files, bin_list, names, genome = NULL, cores = 1) {
-  bws <- parallel::mclapply(files, mc.cores = cores, function(file) {
-    bwR <- rtracklayer::import(file, format = "BigWig", as = "RleList")
-
-    bin_names <- GenomeInfoDb::seqlevels(bin_list)
-    bw_names  <- names(bwR)
-    ## exact, order-safe match (replaces the fragile regex grep)
-    chr_order <- match(bw_names, bin_names)
-    if (anyNA(chr_order))
-      stop("BigWig seqlevels not in bin_list: ",
-           paste(bw_names[is.na(chr_order)], collapse = ", "))
-
-    bins_for_bw <- bin_list
-    GenomeInfoDb::seqlevels(bins_for_bw) <- bin_names[chr_order]
-
-    bw <- GenomicRanges::binnedAverage(
-      bins    = bins_for_bw,
-      numvar  = bwR[GenomeInfoDb::seqlevels(bins_for_bw)],
-      varname = "score"
-    )
-
-    if (!is.null(genome)) GenomeInfoDb::genome(bw) <- genome
-    bw
-  })
-  names(bws) <- names
-  bws
-}
-
 #' Deterministic k-means wrapper (seeded)
 #'
 #' Thin wrapper around \code{stats::kmeans} with a fixed seed and high
